@@ -8,10 +8,10 @@ pipeline {
         TAG              = "${env.BUILD_NUMBER}"
         
         // AWS EC2 정보 설정
-        EC2_IP           = '34.229.232.211'     // 본인의 EC2 탄력적 IP로 변경해 주세요!
+        EC2_IP           = '13.209.144.130'     // 본인의 EC2 탄력적 IP로 변경해 주세요!
         
         // AWS RDS 연결 정보 설정 (배포 시 주입될 환경변수)
-        RDS_HOST         = 'coupon-db.cino4wgywky6.us-east-1.rds.amazonaws.com'
+        RDS_HOST         = 'coupon-db.c5m2o0k6c9vb.ap-northeast-2.rds.amazonaws.com'
         RDS_USER         = 'admin'
     }
 
@@ -68,6 +68,7 @@ pipeline {
                             docker run -d \\
                                 --name ${IMAGE_NAME} \\
                                 -p 8080:8080 \\
+                                -e SPRING_PROFILES_ACTIVE=prod \\
                                 -e DB_HOST=${RDS_HOST} \\
                                 -e DB_USERNAME=${RDS_USER} \\
                                 -e DB_PASSWORD=${RDS_PASS} \\
