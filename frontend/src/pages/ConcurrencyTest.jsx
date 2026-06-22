@@ -18,6 +18,7 @@ function ConcurrencyTest() {
   const [results, setResults] = useState([]); // 각 가상유저의 처리 상태 저장 ({ userId, username, status, message })
   const [summary, setSummary] = useState({ total: 0, success: 0, fail: 0, timeTaken: 0 });
 
+
   // 쿠폰 목록 불러오기
   const fetchCoupons = async () => {
     try {
