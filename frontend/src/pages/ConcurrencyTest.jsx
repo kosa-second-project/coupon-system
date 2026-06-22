@@ -18,6 +18,7 @@ function ConcurrencyTest() {
   const [isResetting, setIsResetting] = useState(false);
   const [results, setResults] = useState([]); // 각 가상유저의 처리 상태 저장 ({ userId, username, status, message })
   const [summary, setSummary] = useState({ total: 0, success: 0, fail: 0, timeTaken: 0 });
+  const [selectedUser, setSelectedUser] = useState(null); // 클릭하여 선택한 가상 유저 상세 데이터
 
   // 테스트 데이터 리셋 요청
   const handleReset = async () => {
@@ -25,6 +26,7 @@ function ConcurrencyTest() {
     if (!window.confirm('정말 테스트 데이터를 초기화하시겠습니까?\n(가상 유저 및 발급 내역이 DB에서 삭제되고 쿠폰 수량이 원래대로 복원됩니다.)')) return;
 
     setIsResetting(true);
+    setSelectedUser(null); // 선택된 가상 유저 상태 초기화
     try {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons/${selectedCouponId}/reset`);
       alert('성공적으로 초기화되었습니다.');
@@ -139,6 +141,7 @@ function ConcurrencyTest() {
     if (!selectedCouponId) return;
 
     setIsRunning(true);
+    setSelectedUser(null); // 새로운 시뮬레이션 시작 시 이전 선택 유저 상세 초기화
     setSummary({ total: 0, success: 0, fail: 0, timeTaken: 0 });
 
     // 1. 가상 유저 상태 리스트 초기화 - 이름 중복 방지를 위한 8자리 난수 추가
@@ -347,7 +350,10 @@ function ConcurrencyTest() {
         {/* 바둑판 시각화 그리드 */}
         {results.length > 0 && (
           <div>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#94a3b8' }}>가상 유저별 응답 실시간 모니터</h3>
+            <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <i className="bi bi-grid-3x3-gap-fill"></i> 가상 유저별 응답 실시간 모니터
+              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>(각 칸을 클릭하면 상세한 응답 사유를 볼 수 있습니다.)</span>
+            </h3>
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(auto-fill, minmax(14px, 1fr))', 
@@ -361,36 +367,89 @@ function ConcurrencyTest() {
                 let color = '#334155'; // idle
                 let shadow = 'none';
                 let isPulse = false;
+                const isSelected = selectedUser?.userId === vUser.userId;
 
                 if (vUser.status === 'pending') {
                   color = '#eab308'; // 노랑
                   isPulse = true;
                 } else if (vUser.status === 'success') {
                   color = '#10b981'; // 초록
-                  shadow = '0 0 8px rgba(16, 185, 129, 0.6)';
+                  shadow = isSelected ? '0 0 14px #fff' : '0 0 8px rgba(16, 185, 129, 0.6)';
                 } else if (vUser.status === 'fail') {
                   color = '#ef4444'; // 빨강
-                  shadow = '0 0 8px rgba(239, 68, 68, 0.4)';
+                  shadow = isSelected ? '0 0 14px #fff' : '0 0 8px rgba(239, 68, 68, 0.4)';
                 }
 
                 return (
                   <div 
                     key={vUser.userId}
-                    title={`${vUser.username}: ${vUser.message}`}
+                    title={`${vUser.username}: ${vUser.message} (클릭하여 고정)`}
+                    onClick={() => setSelectedUser(vUser)}
                     style={{
                       width: '14px',
                       height: '14px',
                       borderRadius: '4px',
                       backgroundColor: color,
                       boxShadow: shadow,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      border: isSelected ? '2px solid #ffffff' : '1px solid transparent',
+                      transform: isSelected ? 'scale(1.25)' : 'scale(1)',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                       animation: isPulse ? 'blink 1s infinite alternate' : 'none',
-                      cursor: 'help'
+                      cursor: 'pointer'
                     }}
                   />
                 );
               })}
             </div>
+            
+            {/* 가상 유저 개별 응답 상세 카드 (클릭 시 노출) */}
+            {selectedUser && (
+              <div style={{
+                marginTop: '1.5rem',
+                padding: '1.25rem',
+                background: '#090d16',
+                borderRadius: '12px',
+                border: `1.5px solid ${selectedUser.status === 'success' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                color: '#f8fafc',
+                animation: 'fadeIn 0.2s ease-out'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>🔍 개별 사용자 응답 분석 (디버그 로그)</span>
+                  <button 
+                    onClick={() => setSelectedUser(null)} 
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 'bold' }}
+                    title="닫기"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <strong style={{ fontSize: '1rem', color: '#e2e8f0' }}>{selectedUser.username}</strong>
+                  <span style={{
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    color: '#fff',
+                    backgroundColor: selectedUser.status === 'success' ? '#10b981' : '#ef4444',
+                    boxShadow: selectedUser.status === 'success' ? '0 0 10px rgba(16, 185, 129, 0.4)' : '0 0 10px rgba(239, 68, 68, 0.4)'
+                  }}>
+                    {selectedUser.status === 'success' ? '성공 🟢' : '실패 🔴'}
+                  </span>
+                </div>
+                <div style={{ 
+                  fontSize: '0.9rem', 
+                  color: '#e2e8f0', 
+                  background: 'rgba(0,0,0,0.3)', 
+                  padding: '0.75rem 1rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(255,255,255,0.02)',
+                  fontFamily: 'monospace'
+                }}>
+                  <strong style={{ color: '#94a3b8' }}>결과 메시지:</strong> {selectedUser.message}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
