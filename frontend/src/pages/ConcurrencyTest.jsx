@@ -62,11 +62,10 @@ function ConcurrencyTest() {
     setIsRunning(true);
     setSummary({ total: 0, success: 0, fail: 0, timeTaken: 0 });
 
-    // 1. 가상 유저 상태 리스트 초기화 - 이름 중복 방지를 위한 8자리 난수 추가
-    const uniqueSuffix = Math.random().toString(36).substring(2, 10);
+    // 1. 가상 유저 상태 리스트 초기화 (고정 회원 test_user_1 ~ N 재사용)
     const initialUsers = Array.from({ length: requestCount }, (_, i) => ({
       userId: i + 1,
-      username: `test_user_${i + 1}_${uniqueSuffix}`,
+      username: `test_user_${i + 1}`,
       status: 'pending',
       message: ''
     }));
