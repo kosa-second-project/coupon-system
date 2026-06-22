@@ -63,13 +63,41 @@ public class CouponController {
     }
 
     /**
-     * 쿠폰 발급 요청
+     * 쿠폰 발급 요청 (동시성 제어 없음)
      * POST http://localhost:8080/api/coupons/{id}/issue
      */
     @PostMapping("/{id}/issue")
     public ResponseEntity<?> issueCoupon(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
             CouponIssue issue = couponService.issueCoupon(request.getUsername(), id);
+            return ResponseEntity.ok(issue);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * 쿠폰 발급 요청 (비관적 락 적용)
+     * POST http://localhost:8080/api/coupons/{id}/issue/pessimistic
+     */
+    @PostMapping("/{id}/issue/pessimistic")
+    public ResponseEntity<?> issueCouponWithPessimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
+        try {
+            CouponIssue issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
+            return ResponseEntity.ok(issue);
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * 쿠폰 발급 요청 (낙관적 락 적용)
+     * POST http://localhost:8080/api/coupons/{id}/issue/optimistic
+     */
+    @PostMapping("/{id}/issue/optimistic")
+    public ResponseEntity<?> issueCouponWithOptimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
+        try {
+            CouponIssue issue = couponService.issueCouponWithOptimisticLock(request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));

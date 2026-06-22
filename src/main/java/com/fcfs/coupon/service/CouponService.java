@@ -94,9 +94,8 @@ public class CouponService {
      */
     @Transactional
     public CouponIssue issueCoupon(String username, Long couponId) {
-        // 1. 유저 조회 (없으면 예외 발생)
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다. 로그인 후 다시 이용해주세요."));
+        // 1. 유저 조회 (없으면 예외 발생. 단, 테스트용 가상유저(test_user_)인 경우 임시 자동 생성)
+        User user = getOrCreateUserForTest(username);
 
         // 2. 쿠폰 존재 확인 (데이터베이스에서 쿠폰 정보를 읽어옴)
         Coupon coupon = couponRepository.findById(couponId)
@@ -126,8 +125,7 @@ public class CouponService {
      */
     @Transactional
     public CouponIssue issueCouponWithPessimisticLock(String username, Long couponId) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        User user = getOrCreateUserForTest(username);
 
         // 비관적 락이 적용된 조회 메서드 호출
         Coupon coupon = couponRepository.findByIdWithPessimisticLock(couponId)
@@ -154,8 +152,7 @@ public class CouponService {
      */
     @Transactional
     public CouponIssue issueCouponWithOptimisticLock(String username, Long couponId) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        User user = getOrCreateUserForTest(username);
 
         // 낙관적 락 전용 엔티티 조회
         CouponWithVersion coupon = couponWithVersionRepository.findById(couponId)
@@ -174,6 +171,25 @@ public class CouponService {
                 .build();
 
         return couponIssueRepository.save(couponIssue);
+    }
+
+    /**
+     * [테스트용 헬퍼] 가상 사용자 자동 생성
+     * - 전달받은 username이 존재하지 않을 때, "test_user_"로 시작하는 경우 DB에 자동 등록해 줍니다.
+     */
+    private User getOrCreateUserForTest(String username) {
+        return userRepository.findByUsername(username)
+                .orElseGet(() -> {
+                    if (username.startsWith("test_user_")) {
+                        User newUser = User.builder()
+                                .username(username)
+                                .password("password123!")
+                                .role(Role.USER)
+                                .build();
+                        return userRepository.save(newUser);
+                    }
+                    throw new IllegalArgumentException("존재하지 않는 사용자입니다. 로그인 후 다시 이용해주세요.");
+                });
     }
 }
 

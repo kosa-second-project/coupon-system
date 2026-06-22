@@ -12,6 +12,7 @@ function ConcurrencyTest() {
   const user = useUserStore((state) => state.user);
   const [coupons, setCoupons] = useState([]);
   const [selectedCouponId, setSelectedCouponId] = useState('');
+  const [lockType, setLockType] = useState('NONE'); // NONE, PESSIMISTIC, OPTIMISTIC
   const [requestCount, setRequestCount] = useState(100); // 동시 요청 보낼 수
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState([]); // 각 가상유저의 처리 상태 저장 ({ userId, username, status, message })
@@ -54,7 +55,14 @@ function ConcurrencyTest() {
     // 2. Promise.all을 사용해 동시에 API 요청 생성 및 송신
     const requests = initialUsers.map(async (vUser, index) => {
       try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons/${selectedCouponId}/issue`, {
+        let url = `${import.meta.env.VITE_API_URL}/api/coupons/${selectedCouponId}/issue`;
+        if (lockType === 'PESSIMISTIC') {
+          url += '/pessimistic';
+        } else if (lockType === 'OPTIMISTIC') {
+          url += '/optimistic';
+        }
+
+        await axios.post(url, {
           username: vUser.username
         });
         
@@ -109,7 +117,7 @@ function ConcurrencyTest() {
       <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         {/* 컨트롤 패널 */}
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginBottom: '2rem' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1.2 }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>테스트할 쿠폰 선택</label>
             <select 
               value={selectedCouponId} 
@@ -124,6 +132,21 @@ function ConcurrencyTest() {
                   {c.name} (남은 수량: {c.remainingQuantity} / {c.totalQuantity})
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>락 방식 선택</label>
+            <select 
+              value={lockType} 
+              onChange={(e) => setLockType(e.target.value)}
+              className="custom-input"
+              style={{ background: '#0f172a', color: '#fff' }}
+              disabled={isRunning}
+            >
+              <option value="NONE">일반 (동시성 제어 없음)</option>
+              <option value="PESSIMISTIC">비관적 락 (Pessimistic Lock)</option>
+              <option value="OPTIMISTIC">낙관적 락 (Optimistic Lock)</option>
             </select>
           </div>
 
