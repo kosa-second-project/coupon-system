@@ -27,5 +27,10 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Coupon c where c.id = :id")
     Optional<Coupon> findByIdWithPessimisticLock(@Param("id") Long id);
+
+    // 쿠폰의 수량과 버전을 네이티브 쿼리로 안전하게 초기화하는 벌크 메서드
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE coupons SET remaining_quantity = total_quantity, version = 0 WHERE id = :id", nativeQuery = true)
+    void resetCouponQuantity(@Param("id") Long id);
 }
 

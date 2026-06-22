@@ -210,17 +210,8 @@ public class CouponService {
             userRepository.deleteByUsernameIn(usernames);
         }
 
-        // 4. 일반 쿠폰 잔여 수량 원상 복구
-        couponRepository.findById(couponId).ifPresent(coupon -> {
-            coupon.setRemainingQuantity(coupon.getTotalQuantity());
-            couponRepository.save(coupon);
-        });
-
-        // 5. 낙관적 락 전용 쿠폰 잔여 수량 원상 복구
-        couponWithVersionRepository.findById(couponId).ifPresent(coupon -> {
-            coupon.setRemainingQuantity(coupon.getTotalQuantity());
-            couponWithVersionRepository.save(coupon);
-        });
+        // 4. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
+        couponRepository.resetCouponQuantity(couponId);
     }
 }
 

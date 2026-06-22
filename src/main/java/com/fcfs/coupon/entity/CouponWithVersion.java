@@ -38,16 +38,4 @@ public class CouponWithVersion extends BaseTimeEntity {
         }
         this.remainingQuantity--;
     }
-
-    /**
-     * DB에서 데이터 로드 직후 실행되는 콜백
-     * - 일반 Coupon 엔티티로 저장되어 version 컬럼이 null인 경우,
-     *   낙관적 락 엔티티로 로드될 때 NullPointerException이 발생하는 것을 방지하기 위해 0L로 강제 세팅합니다.
-     */
-    @PostLoad
-    public void postLoad() {
-        if (this.version == null) {
-            this.version = 0L;
-        }
-    }
 }
