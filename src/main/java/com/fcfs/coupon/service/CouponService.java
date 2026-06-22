@@ -197,10 +197,20 @@ public class CouponService {
      */
     @Transactional
     public void resetTestData(Long couponId) {
-        // 1. 해당 쿠폰의 모든 발급 이력 일괄 삭제 (가상 회원 정보는 재사용을 위해 그대로 유지)
-        couponIssueRepository.deleteByCouponId(couponId);
+        // 1. "test_user_"로 시작하는 가상 사용자 조회
+        List<User> testUsers = userRepository.findByUsernameStartingWith("test_user_");
+        if (!testUsers.isEmpty()) {
+            List<Long> userIds = testUsers.stream().map(User::getId).toList();
+            List<String> usernames = testUsers.stream().map(User::getUsername).toList();
 
-        // 2. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
+            // 2. 가상 사용자의 발급 이력 삭제 (벌크 쿼리)
+            couponIssueRepository.deleteByUserIdIn(userIds);
+
+            // 3. 가상 사용자 삭제 (벌크 쿼리)
+            userRepository.deleteByUsernameIn(usernames);
+        }
+
+        // 4. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
         couponRepository.resetCouponQuantity(couponId);
     }
 }
