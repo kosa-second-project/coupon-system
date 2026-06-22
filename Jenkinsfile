@@ -8,7 +8,7 @@ pipeline {
         TAG              = "${env.BUILD_NUMBER}"
 
         // AWS EC2 정보 설정
-        EC2_IP           = '13.209.144.130'     // 본인의 EC2 탄력적 IP로 변경해 주세요!
+        EC2_IP           = 'localhost'     // 본인의 EC2 탄력적 IP로 변경해 주세요!
         
         // AWS RDS 연결 정보 설정 (배포 시 주입될 환경변수)
         RDS_HOST         = 'coupon-db.c5m2o0k6c9vb.ap-northeast-2.rds.amazonaws.com'
