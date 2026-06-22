@@ -1,0 +1,22 @@
+services:
+  mariadb:
+    image: mariadb:11.2
+    container_name: local-mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - coupon-network
+
+volumes:
+  mariadb_data:
+
+networks:
+  coupon-network:
+    driver: bridge
