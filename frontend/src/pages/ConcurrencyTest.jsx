@@ -39,6 +39,85 @@ function ConcurrencyTest() {
     }
   };
 
+  // 락 종류별 동시성 발생 원리 해설 카드 렌더링 함수
+  const renderExplanation = () => {
+    if (summary.total === 0) return null;
+
+    switch (lockType) {
+      case 'NONE':
+        return (
+          <div style={{
+            padding: '1.5rem',
+            background: 'rgba(239, 68, 68, 0.03)',
+            borderRadius: '12px',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            color: '#cbd5e1',
+            fontSize: '0.9rem',
+            lineHeight: '1.6',
+            marginBottom: '2rem'
+          }}>
+            <h4 style={{ color: '#ef4444', fontSize: '1rem', fontWeight: '700', margin: '0 0 0.8rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ [동시성 제어 없음] 분석 보고: 갱신 손실(Lost Update)
+            </h4>
+            <p style={{ margin: '0 0 0.6rem 0' }}>
+              화면 상에서는 <strong>{summary.success}명 모두 성공</strong>으로 표시되고 실제 발급 이력 DB에도 {summary.success}건이 정상 등록되었지만, 쿠폰의 남은 수량은 예상보다 훨씬 덜 깎였습니다.
+            </p>
+            <p style={{ margin: '0' }}>
+              이유는 락이 없기 때문에 여러 트랜잭션이 <strong>동시에 같은 수량 값을 조회한 뒤, 1개씩 차감한 값으로 계속 덮어씌웠기 때문</strong>입니다. 실제 상용 서비스에서 이대로 배포할 경우, 100개 선착순 쿠폰에 수백 명이 당첨되어 대형 초과 발급 사고가 발생하게 됩니다.
+            </p>
+          </div>
+        );
+      case 'PESSIMISTIC':
+        return (
+          <div style={{
+            padding: '1.5rem',
+            background: 'rgba(16, 185, 129, 0.03)',
+            borderRadius: '12px',
+            border: '1px solid rgba(16, 185, 129, 0.15)',
+            color: '#cbd5e1',
+            fontSize: '0.9rem',
+            lineHeight: '1.6',
+            marginBottom: '2rem'
+          }}>
+            <h4 style={{ color: '#10b981', fontSize: '1rem', fontWeight: '700', margin: '0 0 0.8rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🔒 [비관적 락] 분석 보고: 완벽한 데이터 정합성 (줄 세우기)
+            </h4>
+            <p style={{ margin: '0 0 0.6rem 0' }}>
+              비관적 락은 DB 레코드를 조회할 때부터 <code>SELECT ... FOR UPDATE</code>를 통해 해당 행을 완전히 잠가버립니다.
+            </p>
+            <p style={{ margin: '0' }}>
+              먼저 도달한 트랜잭션이 수량을 깎고 끝낼 때까지 다른 모든 트랜잭션들을 <strong>대기 상태로 줄을 세워 순차적으로 실행</strong>하기 때문에, 성공한 사람 수와 실제 감소한 수량이 <strong>단 1개의 오차도 없이 완벽하게 일치</strong>합니다. 다만, 대기 시간 때문에 소요 시간이 늘어날 수 있습니다.
+            </p>
+          </div>
+        );
+      case 'OPTIMISTIC':
+        return (
+          <div style={{
+            padding: '1.5rem',
+            background: 'rgba(99, 102, 241, 0.03)',
+            borderRadius: '12px',
+            border: '1px solid rgba(99, 102, 241, 0.15)',
+            color: '#cbd5e1',
+            fontSize: '0.9rem',
+            lineHeight: '1.6',
+            marginBottom: '2rem'
+          }}>
+            <h4 style={{ color: '#6366f1', fontSize: '1rem', fontWeight: '700', margin: '0 0 0.8rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚙️ [낙관적 락] 분석 보고: 최초 도전자 승리 및 버전 충돌
+            </h4>
+            <p style={{ margin: '0 0 0.6rem 0' }}>
+              조회 시에는 락을 걸지 않고 자유롭게 공유하되, DB에 쓸 때 <strong>버전(@Version) 컬럼</strong>이 일치하는지 비교해 데이터 무결성을 검증합니다.
+            </p>
+            <p style={{ margin: '0' }}>
+              100명이 동시에 같은 버전을 읽어와 수량 차감을 시도하므로, <strong>가장 먼저 트랜잭션을 끝내고 커밋한 최초 1명만 통과</strong>되고 나머지 99명은 버전이 어긋나 에러(롤백)가 납니다. 선착순 쿠폰에 사용하려면 실패한 요청에 대한 <strong>재시도(Retry) 알고리즘</strong>을 서비스에 보완하여 탑재해야 유의미하게 쓸 수 있습니다.
+            </p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   // 쿠폰 목록 불러오기
   const fetchCoupons = async () => {
     try {
@@ -240,7 +319,7 @@ function ConcurrencyTest() {
             padding: '1.25rem', 
             borderRadius: '12px',
             border: '1px solid rgba(255,255,255,0.05)',
-            marginBottom: '2rem'
+            marginBottom: '1.5rem'
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748b' }}>총 요청 수</div>
@@ -260,6 +339,9 @@ function ConcurrencyTest() {
             </div>
           </div>
         )}
+
+        {/* 락 유형별 해설 카드 (동적 해설 출력) */}
+        {renderExplanation()}
 
         {/* 바둑판 시각화 그리드 */}
         {results.length > 0 && (
