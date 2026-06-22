@@ -76,6 +76,15 @@ function Navbar() {
               쿠폰 발급
             </span>
 
+            {/* 동시성 테스트 탭 */}
+            <span 
+              onClick={() => navigate('/concurrency')} 
+              className={`nav-link ${location.pathname === '/concurrency' ? 'active' : ''}`}
+            >
+              <i className="bi bi-cpu" style={{ fontSize: '1.05rem' }}></i>
+              동시성 테스트
+            </span>
+
             {/* 관리자(ADMIN) 권한 소유 유저에게만 '쿠폰 관리자' 메뉴 노출 */}
             {user.role === 'ADMIN' && (
               <span 

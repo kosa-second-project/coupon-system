@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CouponList from './pages/CouponList';
 import AdminCoupon from './pages/AdminCoupon';
+import ConcurrencyTest from './pages/ConcurrencyTest';
 import { useUserStore } from './store/useUserStore';
 
 /**
@@ -52,15 +53,20 @@ function App() {
           />
 
           {/* ==========================================
-              로그인 상태 전용 경로 (쿠폰 신청 / 어드민)
+              로그인 상태 전용 경로 (쿠폰 신청 / 어드민 / 동시성 테스트)
               ========================================== */}
           {/* 
             - 쿠폰 발급 목록: 로그인하지 않은 유저가 접근하면 로그인 창(`/login`)으로 돌려보냅니다.
+            - 동시성 테스트: 로그인한 사용자만 모의 동시 요청 테스트를 수행할 수 있게 허용합니다.
             - 쿠폰 관리자: 로그인 검사와 동시에, 사용자의 권한(`role === 'ADMIN'`)을 한 번 더 검사합니다.
           */}
           <Route 
             path="/coupons" 
             element={user ? <CouponList /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/concurrency" 
+            element={user ? <ConcurrencyTest /> : <Navigate to="/login" replace />} 
           />
           <Route 
             path="/admin" 
