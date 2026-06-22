@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useUserStore } from '../store/useUserStore';
 
-function Login({ onLoginSuccess }) {
+function Login() {
   const navigate = useNavigate();
+  const login = useUserStore((state) => state.login);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +35,7 @@ function Login({ onLoginSuccess }) {
       setToast({ type: 'success', message: '로그인에 성공했습니다!' });
       
       setTimeout(() => {
-        onLoginSuccess(response.data);
+        login(response.data);
       }, 500);
 
     } catch (error) {

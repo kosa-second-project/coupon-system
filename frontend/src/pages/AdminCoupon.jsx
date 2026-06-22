@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useUserStore } from '../store/useUserStore';
 
 /**
  * [React Page - AdminCoupon]
@@ -7,7 +8,8 @@ import axios from 'axios';
  * - 관리자(ADMIN)만 접근하여 신규 쿠폰을 등록하는 화면입니다.
  * - 신규 쿠폰 생성 양식 및 현재 DB에 등록되어 있는 쿠폰들의 전체 목록을 테이블 형태로 시각화합니다.
  */
-function AdminCoupon({ user }) {
+function AdminCoupon() {
+  const user = useUserStore((state) => state.user);
   const [name, setName] = useState('');
   const [totalQuantity, setTotalQuantity] = useState('');
   const [loading, setLoading] = useState(false);
