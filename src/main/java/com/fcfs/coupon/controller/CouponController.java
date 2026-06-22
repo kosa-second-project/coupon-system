@@ -114,6 +114,7 @@ public class CouponController {
             couponService.resetTestData(id);
             return ResponseEntity.ok().body(java.util.Map.of("message", "테스트 데이터 초기화 완료"));
         } catch (Exception e) {
+            e.printStackTrace(); // 콘솔에 상세 에러 출력
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
