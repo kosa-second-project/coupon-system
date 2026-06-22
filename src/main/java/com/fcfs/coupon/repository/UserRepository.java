@@ -23,7 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByUsernameStartingWith(String prefix);
 
     // 가상 사용자 목록을 한 번에 벌크 삭제하는 메서드
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from User u where u.username in :usernames")
     void deleteByUsernameIn(@Param("usernames") List<String> usernames);
 }

@@ -27,7 +27,7 @@ public interface CouponIssueRepository extends JpaRepository<CouponIssue, Long> 
     long countByCouponId(Long couponId);
 
     // 가상 사용자들의 발급 이력을 한 번에 벌크 삭제하는 메서드
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from CouponIssue ci where ci.userId in :userIds")
     void deleteByUserIdIn(@Param("userIds") List<Long> userIds);
 }
