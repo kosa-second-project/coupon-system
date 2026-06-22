@@ -201,16 +201,12 @@ public class CouponService {
         List<User> testUsers = userRepository.findByUsernameStartingWith("test_user_");
         if (!testUsers.isEmpty()) {
             List<Long> userIds = testUsers.stream().map(User::getId).toList();
-            List<String> usernames = testUsers.stream().map(User::getUsername).toList();
 
-            // 2. 가상 사용자의 발급 이력 삭제
-            couponIssueRepository.deleteByUserIdIn(userIds);
-
-            // 3. 가상 사용자 삭제
-            userRepository.deleteByUsernameIn(usernames);
+            // 2. 해당 쿠폰 ID에 해당하는 가상 사용자의 발급 이력만 선별 삭제 (타 쿠폰 내역 보호)
+            couponIssueRepository.deleteByCouponIdAndUserIdIn(couponId, userIds);
         }
 
-        // 4. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
+        // 3. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
         couponRepository.resetCouponQuantity(couponId);
     }
 }
