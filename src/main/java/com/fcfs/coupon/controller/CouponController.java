@@ -5,6 +5,7 @@ import com.fcfs.coupon.entity.CouponIssue;
 import com.fcfs.coupon.service.CouponService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/coupons")
 @RequiredArgsConstructor
+@Slf4j
 public class CouponController {
 
     private final CouponService couponService;
@@ -70,8 +72,10 @@ public class CouponController {
     public ResponseEntity<?> issueCoupon(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
             CouponIssue issue = couponService.issueCoupon(request.getUsername(), id);
+            log.info("[FCFS Coupon Issue] [NONE LOCK] SUCCESS - User: {}, Coupon: {}", request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
+            log.warn("[FCFS Coupon Issue] [NONE LOCK] FAILED - User: {}, Coupon: {}, Reason: {}", request.getUsername(), id, e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
@@ -84,8 +88,10 @@ public class CouponController {
     public ResponseEntity<?> issueCouponWithPessimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
             CouponIssue issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
+            log.info("[FCFS Coupon Issue] [PESSIMISTIC LOCK] SUCCESS - User: {}, Coupon: {}", request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
+            log.warn("[FCFS Coupon Issue] [PESSIMISTIC LOCK] FAILED - User: {}, Coupon: {}, Reason: {}", request.getUsername(), id, e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
@@ -98,8 +104,10 @@ public class CouponController {
     public ResponseEntity<?> issueCouponWithOptimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
             CouponIssue issue = couponService.issueCouponWithOptimisticLock(request.getUsername(), id);
+            log.info("[FCFS Coupon Issue] [OPTIMISTIC LOCK] SUCCESS - User: {}, Coupon: {}", request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
+            log.warn("[FCFS Coupon Issue] [OPTIMISTIC LOCK] FAILED - User: {}, Coupon: {}, Reason: {}", request.getUsername(), id, e.getMessage());
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
