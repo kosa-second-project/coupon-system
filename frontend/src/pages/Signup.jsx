@@ -26,7 +26,7 @@ function Signup() {
     setToast(null);
 
     try {
-      await axios.post('http://localhost:8080/api/users/signup', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/users/signup`, {
         username: username.trim(),
         password: password.trim(),
         role: role

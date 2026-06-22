@@ -13,6 +13,11 @@ pipeline {
         // AWS RDS 연결 정보 설정 (배포 시 주입될 환경변수)
         RDS_HOST         = 'coupon-db.c5m2o0k6c9vb.ap-northeast-2.rds.amazonaws.com'
         RDS_USER         = 'admin'
+
+        // AWS S3 및 CloudFront 설정 추가
+        S3_BUCKET_NAME   = 'coupon-system-frontend-youngman'
+        CLOUDFRONT_DIST_ID = 'E27ZT54U1YCQ61'
+        AWS_REGION       = 'ap-northeast-2'
     }
 
     stages {
@@ -22,7 +27,17 @@ pipeline {
             }
         }
 
+        // ==================== 1. 백엔드 빌드 및 배포 스테이지 ====================
+        // 백엔드 소스나 설정 파일들이 변경되었을 때만 실행합니다.
         stage('Build Boot Application') {
+            when {
+                anyOf {
+                    changeset "src/**"
+                    changeset "build.gradle"
+                    changeset "Dockerfile"
+                    changeset "Jenkinsfile"
+                }
+            }
             steps {
                 echo 'Building Spring Boot Application...'
                 sh 'chmod +x ./gradlew'
@@ -31,6 +46,14 @@ pipeline {
         }
 
         stage('Build & Push Docker Image') {
+            when {
+                anyOf {
+                    changeset "src/**"
+                    changeset "build.gradle"
+                    changeset "Dockerfile"
+                    changeset "Jenkinsfile"
+                }
+            }
             steps {
                 echo 'Building Docker Image...'
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -44,6 +67,14 @@ pipeline {
         }
 
         stage('Deploy to AWS EC2') {
+            when {
+                anyOf {
+                    changeset "src/**"
+                    changeset "build.gradle"
+                    changeset "Dockerfile"
+                    changeset "Jenkinsfile"
+                }
+            }
             steps {
                 echo 'Deploying to AWS EC2 via SSH...'
                 // RDS 비밀번호를 Jenkins Credentials에서 동적으로 가져옵니다 (보안)
@@ -78,6 +109,47 @@ pipeline {
                         "
                         """
                     }
+                }
+            }
+        }
+
+        // ==================== 2. 프론트엔드 빌드 및 배포 스테이지 ====================
+        // frontend 폴더 하위 파일들이 변경되었을 때만 실행합니다.
+        stage('Build Frontend') {
+            when {
+                changeset "frontend/**"
+            }
+            steps {
+                echo 'Building Frontend (Vite)...'
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Deploy Frontend to S3 & CloudFront') {
+            when {
+                changeset "frontend/**"
+            }
+            steps {
+                echo 'Deploying Frontend to AWS S3 & CloudFront...'
+                // AWS IAM 자격증명을 Jenkins Credentials(Secret text)에서 로드합니다.
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh """
+                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                        export AWS_DEFAULT_REGION=${AWS_REGION}
+                        
+                        # 1. S3 버킷과 frontend/dist 폴더 동기화 (--delete 옵션으로 안쓰는 파일 삭제)
+                        aws s3 sync frontend/dist s3://${S3_BUCKET_NAME} --delete
+                        
+                        # 2. CloudFront 캐시 무효화 (사용자에게 즉시 배포본 반영)
+                        aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DIST_ID} --paths "/*"
+                    """
                 }
             }
         }

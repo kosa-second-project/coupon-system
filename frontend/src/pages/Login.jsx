@@ -25,7 +25,7 @@ function Login({ onLoginSuccess }) {
     setToast(null);
 
     try {
-      const response = await axios.post('http://localhost:8080/api/users/login', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/login`, {
         username: username.trim(),
         password: password.trim()
       });

@@ -16,7 +16,7 @@ function AdminCoupon({ user }) {
 
   const fetchCoupons = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/coupons');
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/coupons`);
       setCoupons(response.data);
     } catch (error) {
       console.error('쿠폰 목록 로드 실패:', error);
@@ -45,7 +45,7 @@ function AdminCoupon({ user }) {
     setToast(null);
 
     try {
-      await axios.post('http://localhost:8080/api/coupons', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons`, {
         name: name.trim(),
         totalQuantity: qty,
         adminId: user.id
