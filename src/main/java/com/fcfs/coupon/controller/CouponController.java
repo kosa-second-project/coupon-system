@@ -104,6 +104,20 @@ public class CouponController {
         }
     }
 
+    /**
+     * 테스트용 가상 데이터 및 쿠폰 수량 리셋 API
+     * POST http://localhost:8080/api/coupons/{id}/reset
+     */
+    @PostMapping("/{id}/reset")
+    public ResponseEntity<?> resetTestData(@PathVariable Long id) {
+        try {
+            couponService.resetTestData(id);
+            return ResponseEntity.ok().body(java.util.Map.of("message", "테스트 데이터 초기화 완료"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
     // DTO 정의
     @Data
     public static class CreateCouponRequest {

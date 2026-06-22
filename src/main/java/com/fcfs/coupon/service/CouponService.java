@@ -191,5 +191,36 @@ public class CouponService {
                     throw new IllegalArgumentException("존재하지 않는 사용자입니다. 로그인 후 다시 이용해주세요.");
                 });
     }
+
+    /**
+     * 테스트용 가상 데이터 및 쿠폰 수량 초기화 (리셋)
+     */
+    @Transactional
+    public void resetTestData(Long couponId) {
+        // 1. "test_user_"로 시작하는 가상 사용자 조회
+        List<User> testUsers = userRepository.findByUsernameStartingWith("test_user_");
+        if (!testUsers.isEmpty()) {
+            List<Long> userIds = testUsers.stream().map(User::getId).toList();
+            List<String> usernames = testUsers.stream().map(User::getUsername).toList();
+
+            // 2. 가상 사용자의 발급 이력 삭제
+            couponIssueRepository.deleteByUserIdIn(userIds);
+
+            // 3. 가상 사용자 삭제
+            userRepository.deleteByUsernameIn(usernames);
+        }
+
+        // 4. 일반 쿠폰 잔여 수량 원상 복구
+        couponRepository.findById(couponId).ifPresent(coupon -> {
+            coupon.setRemainingQuantity(coupon.getTotalQuantity());
+            couponRepository.save(coupon);
+        });
+
+        // 5. 낙관적 락 전용 쿠폰 잔여 수량 원상 복구
+        couponWithVersionRepository.findById(couponId).ifPresent(coupon -> {
+            coupon.setRemainingQuantity(coupon.getTotalQuantity());
+            couponWithVersionRepository.save(coupon);
+        });
+    }
 }
 

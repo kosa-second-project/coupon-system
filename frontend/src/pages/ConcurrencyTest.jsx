@@ -15,9 +15,29 @@ function ConcurrencyTest() {
   const [lockType, setLockType] = useState('NONE'); // NONE, PESSIMISTIC, OPTIMISTIC
   const [requestCount, setRequestCount] = useState(100); // 동시 요청 보낼 수
   const [isRunning, setIsRunning] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [results, setResults] = useState([]); // 각 가상유저의 처리 상태 저장 ({ userId, username, status, message })
   const [summary, setSummary] = useState({ total: 0, success: 0, fail: 0, timeTaken: 0 });
 
+  // 테스트 데이터 리셋 요청
+  const handleReset = async () => {
+    if (!selectedCouponId) return;
+    if (!window.confirm('정말 테스트 데이터를 초기화하시겠습니까?\n(가상 유저 및 발급 내역이 DB에서 삭제되고 쿠폰 수량이 원래대로 복원됩니다.)')) return;
+
+    setIsResetting(true);
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/coupons/${selectedCouponId}/reset`);
+      alert('성공적으로 초기화되었습니다.');
+      setResults([]);
+      setSummary({ total: 0, success: 0, fail: 0, timeTaken: 0 });
+      fetchCoupons(); // 쿠폰 정보 갱신
+    } catch (error) {
+      console.error('초기화 실패', error);
+      alert(error.response?.data?.message || '초기화 중 오류가 발생했습니다.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // 쿠폰 목록 불러오기
   const fetchCoupons = async () => {
@@ -42,10 +62,11 @@ function ConcurrencyTest() {
     setIsRunning(true);
     setSummary({ total: 0, success: 0, fail: 0, timeTaken: 0 });
 
-    // 1. 가상 유저 상태 리스트 초기화 (예: user_1 ~ user_100)
+    // 1. 가상 유저 상태 리스트 초기화 - 이름 중복 방지를 위한 8자리 난수 추가
+    const uniqueSuffix = Math.random().toString(36).substring(2, 10);
     const initialUsers = Array.from({ length: requestCount }, (_, i) => ({
       userId: i + 1,
-      username: `test_user_${i + 1}`,
+      username: `test_user_${i + 1}_${uniqueSuffix}`,
       status: 'pending',
       message: ''
     }));
@@ -168,10 +189,30 @@ function ConcurrencyTest() {
           <button 
             onClick={handleSimulate} 
             className="glow-button glow-button-admin"
-            disabled={isRunning || !selectedCouponId}
-            style={{ width: 'auto', padding: '0 2rem', height: '45px' }}
+            disabled={isRunning || isResetting || !selectedCouponId}
+            style={{ width: 'auto', padding: '0 1.5rem', height: '45px' }}
           >
             {isRunning ? '시뮬레이션 작동 중...' : '동시 요청 시작'}
+          </button>
+
+          <button 
+            onClick={handleReset} 
+            className="glow-button"
+            disabled={isRunning || isResetting || !selectedCouponId}
+            style={{ 
+              width: 'auto', 
+              padding: '0 1.5rem', 
+              height: '45px',
+              background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            {isResetting ? '초기화 중...' : '데이터 리셋'}
           </button>
         </div>
 

@@ -2,6 +2,10 @@ package com.fcfs.coupon.repository;
 
 import com.fcfs.coupon.entity.CouponIssue;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,5 +25,10 @@ public interface CouponIssueRepository extends JpaRepository<CouponIssue, Long> 
 
     // 특정 쿠폰이 총 몇 개 발급되었는지 카운트
     long countByCouponId(Long couponId);
+
+    // 가상 사용자들의 발급 이력을 한 번에 벌크 삭제하는 메서드
+    @Modifying
+    @Query("delete from CouponIssue ci where ci.userId in :userIds")
+    void deleteByUserIdIn(@Param("userIds") List<Long> userIds);
 }
 
