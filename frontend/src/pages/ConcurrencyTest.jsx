@@ -138,82 +138,97 @@ function ConcurrencyTest() {
 
       <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         {/* 컨트롤 패널 */}
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end', marginBottom: '2rem' }}>
-          <div style={{ flex: 1.2 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>테스트할 쿠폰 선택</label>
-            <select 
-              value={selectedCouponId} 
-              onChange={(e) => setSelectedCouponId(e.target.value)}
-              className="custom-input"
-              style={{ background: '#0f172a', color: '#fff' }}
-              disabled={isRunning}
-            >
-              <option value="" disabled>-- 테스트할 쿠폰을 선택하세요 --</option>
-              {coupons.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} (남은 수량: {c.remainingQuantity} / {c.totalQuantity})
-                </option>
-              ))}
-            </select>
+        {/* 컨트롤 패널 (2단 반응형 구조로 개편) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+          
+          {/* 1단: 쿠폰 및 락 방식 선택 */}
+          <div style={{ display: 'flex', gap: '1rem', width: '100%', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1.4, minWidth: '280px' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>테스트할 쿠폰 선택</label>
+              <select 
+                value={selectedCouponId} 
+                onChange={(e) => setSelectedCouponId(e.target.value)}
+                className="custom-input"
+                style={{ background: '#0f172a', color: '#fff', width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                disabled={isRunning || isResetting}
+              >
+                <option value="" disabled>-- 테스트할 쿠폰을 선택하세요 --</option>
+                {coupons.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} (남은 수량: {c.remainingQuantity} / {c.totalQuantity})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>락 방식 선택</label>
+              <select 
+                value={lockType} 
+                onChange={(e) => setLockType(e.target.value)}
+                className="custom-input"
+                style={{ background: '#0f172a', color: '#fff', width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}
+                disabled={isRunning || isResetting}
+              >
+                <option value="NONE">일반 (동시성 제어 없음)</option>
+                <option value="PESSIMISTIC">비관적 락 (Pessimistic Lock)</option>
+                <option value="OPTIMISTIC">낙관적 락 (Optimistic Lock)</option>
+              </select>
+            </div>
           </div>
 
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>락 방식 선택</label>
-            <select 
-              value={lockType} 
-              onChange={(e) => setLockType(e.target.value)}
-              className="custom-input"
-              style={{ background: '#0f172a', color: '#fff' }}
-              disabled={isRunning}
-            >
-              <option value="NONE">일반 (동시성 제어 없음)</option>
-              <option value="PESSIMISTIC">비관적 락 (Pessimistic Lock)</option>
-              <option value="OPTIMISTIC">낙관적 락 (Optimistic Lock)</option>
-            </select>
+          {/* 2단: 동시 요청 수 및 실행/리셋 버튼 */}
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-end', width: '100%', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1.2, minWidth: '240px' }}>
+              <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
+                동시 요청 수 ({requestCount}명)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <input 
+                  type="range" 
+                  min="10" 
+                  max="300" 
+                  step="10"
+                  value={requestCount}
+                  onChange={(e) => setRequestCount(Number(e.target.value))}
+                  disabled={isRunning}
+                  style={{ width: '100%', accentColor: '#ec4899', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+              <button 
+                onClick={handleSimulate} 
+                className="glow-button glow-button-admin"
+                disabled={isRunning || isResetting || !selectedCouponId}
+                style={{ flex: 1.3, padding: '0', height: '45px', fontSize: '0.9rem', borderRadius: '8px' }}
+              >
+                {isRunning ? '시뮬레이션 작동 중...' : '동시 요청 시작'}
+              </button>
+
+              <button 
+                onClick={handleReset} 
+                className="glow-button"
+                disabled={isRunning || isResetting || !selectedCouponId}
+                style={{ 
+                  flex: 0.7, 
+                  padding: '0', 
+                  height: '45px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.9rem'
+                }}
+              >
+                {isResetting ? '초기화 중...' : '데이터 리셋'}
+              </button>
+            </div>
           </div>
-
-          <div style={{ width: '200px' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>동시 요청 수 ({requestCount}명)</label>
-            <input 
-              type="range" 
-              min="10" 
-              max="300" 
-              step="10"
-              value={requestCount}
-              onChange={(e) => setRequestCount(Number(e.target.value))}
-              disabled={isRunning}
-              style={{ width: '100%', accentColor: '#ec4899' }}
-            />
-          </div>
-
-          <button 
-            onClick={handleSimulate} 
-            className="glow-button glow-button-admin"
-            disabled={isRunning || isResetting || !selectedCouponId}
-            style={{ width: 'auto', padding: '0 1.5rem', height: '45px' }}
-          >
-            {isRunning ? '시뮬레이션 작동 중...' : '동시 요청 시작'}
-          </button>
-
-          <button 
-            onClick={handleReset} 
-            className="glow-button"
-            disabled={isRunning || isResetting || !selectedCouponId}
-            style={{ 
-              width: 'auto', 
-              padding: '0 1.5rem', 
-              height: '45px',
-              background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600'
-            }}
-          >
-            {isResetting ? '초기화 중...' : '데이터 리셋'}
-          </button>
         </div>
 
         {/* 통계 리포트 */}
