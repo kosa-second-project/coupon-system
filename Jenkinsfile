@@ -14,7 +14,7 @@ pipeline {
         RDS_HOST         = 'coupon-db.c5m2o0k6c9vb.ap-northeast-2.rds.amazonaws.com'
         RDS_USER         = 'admin'
 
-        // AWS S3 및 CloudFront 설정 추가
+        // AWS S3 및 CloudFront 설정 추가 (실제 값으로 변경해 주세요!)
         S3_BUCKET_NAME   = 'coupon-system-frontend-youngman'
         CLOUDFRONT_DIST_ID = 'E27ZT54U1YCQ61'
         AWS_REGION       = 'ap-northeast-2'
@@ -28,7 +28,6 @@ pipeline {
         }
 
         // ==================== 1. 백엔드 빌드 및 배포 스테이지 ====================
-        // 백엔드 소스나 설정 파일들이 변경되었을 때만 실행합니다.
         stage('Build Boot Application') {
             when {
                 anyOf {
@@ -36,6 +35,7 @@ pipeline {
                     changeset "build.gradle"
                     changeset "Dockerfile"
                     changeset "Jenkinsfile"
+                    triggeredBy 'UserIdCause'
                 }
             }
             steps {
@@ -52,6 +52,7 @@ pipeline {
                     changeset "build.gradle"
                     changeset "Dockerfile"
                     changeset "Jenkinsfile"
+                    triggeredBy 'UserIdCause'
                 }
             }
             steps {
@@ -73,6 +74,7 @@ pipeline {
                     changeset "build.gradle"
                     changeset "Dockerfile"
                     changeset "Jenkinsfile"
+                    triggeredBy 'UserIdCause'
                 }
             }
             steps {
@@ -114,10 +116,12 @@ pipeline {
         }
 
         // ==================== 2. 프론트엔드 빌드 및 배포 스테이지 ====================
-        // frontend 폴더 하위 파일들이 변경되었을 때만 실행합니다.
         stage('Build Frontend') {
             when {
-                changeset "frontend/**"
+                anyOf {
+                    changeset "frontend/**"
+                    triggeredBy 'UserIdCause'
+                }
             }
             steps {
                 echo 'Building Frontend (Vite)...'
@@ -131,7 +135,10 @@ pipeline {
 
         stage('Deploy Frontend to S3 & CloudFront') {
             when {
-                changeset "frontend/**"
+                anyOf {
+                    changeset "frontend/**"
+                    triggeredBy 'UserIdCause'
+                }
             }
             steps {
                 echo 'Deploying Frontend to AWS S3 & CloudFront...'
