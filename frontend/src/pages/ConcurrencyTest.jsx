@@ -72,9 +72,13 @@ function ConcurrencyTest() {
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> AWS 서버 간의 네트워크 레이턴시가 발생하고 RDS의 하드웨어 스펙이 낮기 때문에, 동일한 데이터를 수정하기 위한 로우 락 대기 줄이 길게 늘어집니다. 결국 대기 시간이 한계치를 초과하여 <strong>DB의 락 타임아웃(Lock wait timeout)</strong> 또는 <strong>커넥션 풀 고갈(HikariCP Connection Timeout)</strong>로 인해 <strong>실패(빨간색) 요청이 대거 발생</strong>하게 됩니다.
               </div>
             </div>
-            <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', borderLeft: '4px solid #ef4444', marginBottom: '0.8rem' }}>
               <strong style={{ color: '#fca5a5' }}>💡 쉽게 이해하는 비유 (칠판 숫자 낙서)</strong><br />
               두 명의 학생이 칠판에 적힌 숫자 '100'을 보고 동시에 '1을 빼는 낙서'를 하러 달려갑니다. 둘 다 머릿속으로 '100 - 1 = 99'를 계산한 상태로 칠판에 적기 때문에, 두 명이 낙서를 끝냈음에도 칠판에는 '98'이 아닌 '99'가 남게 되는 현상과 같습니다. (1명의 작업이 공중으로 날아감)
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.3)' }}>
+              <strong style={{ color: '#fca5a5' }}>🎯 실무 추천 활용 상황</strong><br />
+              데이터 정합성보다 <strong>속도와 성능이 압도적으로 중요</strong>하며, 약간의 오차가 비즈니스에 영향이 없는 경우에만 사용합니다. (예: 조회수 카운팅, 단순 로그 누적 통계 등. <u>돈, 재고, 쿠폰 발급 등에는 절대 금지</u>)
             </div>
           </div>
         );
@@ -104,9 +108,13 @@ function ConcurrencyTest() {
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 트랜잭션 시간이 길어져 대기 큐의 꼬리가 길어집니다. 이로 인해 뒤쪽에 서 있는 요청들은 대기 한계 시간을 초과하여 <strong>비즈니스 로직(수량 부족)이 실행되기도 전에 타임아웃 에러로 강제 실패</strong>하게 됩니다. 대규모 트래픽 환경에서 비관적 락을 원활하게 쓰려면 커넥션 풀 튜닝과 고성능 DB 스케일업이 수반되어야 함을 배울 수 있습니다.
               </div>
             </div>
-            <div style={{ padding: '0.8rem 1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', borderLeft: '4px solid #10b981', marginBottom: '0.8rem' }}>
               <strong style={{ color: '#a7f3d0' }}>💡 쉽게 이해하는 비유 (1인용 화장실)</strong><br />
               누군가 들어가서 안에서 문을 잠그고 사용하는 1인용 화장실과 같습니다. 뒤에 온 사람들은 화장실 문이 열릴 때까지 무조건 밖에서 줄을 서야 하며, 대기 줄이 너무 길어지고 대기 제한 시간이 지나면 기다리던 사람이 포기하고 그냥 돌아가게(타임아웃 실패) 됩니다.
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(16, 185, 129, 0.3)' }}>
+              <strong style={{ color: '#a7f3d0' }}>🎯 실무 추천 활용 상황</strong><br />
+              수정 요청이 빈번하여 <strong>충돌이 자주 발생할 것이 예상(고충돌 환경)</strong>되고, 1원의 오차도 있어서는 안 되는 <strong>핵심 비즈니스 데이터의 안전한 보호</strong>를 위해 사용합니다. (예: 선착순 쿠폰 발급, 은행 계좌 송금, 항공권/뮤지컬 좌석 예매 등)
             </div>
           </div>
         );
@@ -136,9 +144,13 @@ function ConcurrencyTest() {
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 로컬과 마찬가지로 1등만 통과하고 나머지는 즉시 실패하지만, 네트워크 지연에 따라 최초 커밋 성공까지의 절대적인 시간(ms)만 다소 늘어납니다. 선착순 쿠폰처럼 고충돌 환경에서 낙관적 락을 실무적으로 사용하기 위해서는 실패한 요청들을 계속 재처리해주는 **재시도(Retry) 로직(예: Facade 구현 또는 AOP 처리)**이 필수로 구현되어야 합니다.
               </div>
             </div>
-            <div style={{ padding: '0.8rem 1rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid #6366f1' }}>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid #6366f1', marginBottom: '0.8rem' }}>
               <strong style={{ color: '#c7d2fe' }}>💡 쉽게 이해하는 비유 (위키백과 문서 동시 편집)</strong><br />
               100명의 사람이 동시에 위키백과의 동일한 문서를 열어서 수정하기 시작합니다. 가장 먼저 편집을 마치고 '저장' 버튼을 누른 1등만 실제 문서에 반영(버전 상승)되고, 2등부터 100등까지의 사람들은 저장 시점에 "이미 수정된 문서입니다"라며 저장을 거부당해(롤백) 작업이 취소되는 것과 같습니다.
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
+              <strong style={{ color: '#c7d2fe' }}>🎯 실무 추천 활용 상황</strong><br />
+              동시에 동일한 데이터를 수정할 확률이 극히 낮은 <strong>저충돌 환경</strong>이면서, 데이터의 정합성은 확실하게 보장해야 할 때 유용합니다. (예: 개인 정보 수정, 게시판 글 편집, 시스템 환경 설정 변경 등)
             </div>
           </div>
         );
