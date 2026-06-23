@@ -1,9 +1,9 @@
 package com.fcfs.coupon.controller;
 
-import com.fcfs.coupon.dto.ErrorResponse;
-import com.fcfs.coupon.dto.LoginRequest;
-import com.fcfs.coupon.dto.SignUpRequest;
-import com.fcfs.coupon.dto.UserResponse;
+import com.fcfs.coupon.dto.common.ErrorResponse;
+import com.fcfs.coupon.dto.user.LoginRequest;
+import com.fcfs.coupon.dto.user.SignUpRequest;
+import com.fcfs.coupon.dto.user.UserResponse;
 import com.fcfs.coupon.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

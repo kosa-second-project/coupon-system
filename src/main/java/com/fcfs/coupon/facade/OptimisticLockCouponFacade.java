@@ -1,6 +1,6 @@
 package com.fcfs.coupon.facade;
 
-import com.fcfs.coupon.dto.CouponIssueResponse;
+import com.fcfs.coupon.dto.coupon.CouponIssueResponse;
 import com.fcfs.coupon.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;

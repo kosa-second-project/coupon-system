@@ -1,4 +1,4 @@
-package com.fcfs.coupon.dto;
+package com.fcfs.coupon.dto.coupon;
 
 import com.fcfs.coupon.entity.Coupon;
 import lombok.AllArgsConstructor;

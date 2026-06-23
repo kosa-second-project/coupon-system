@@ -1,7 +1,7 @@
 package com.fcfs.coupon.service;
 
-import com.fcfs.coupon.dto.CouponIssueResponse;
-import com.fcfs.coupon.dto.CouponResponse;
+import com.fcfs.coupon.dto.coupon.CouponIssueResponse;
+import com.fcfs.coupon.dto.coupon.CouponResponse;
 import com.fcfs.coupon.entity.Coupon;
 import com.fcfs.coupon.entity.CouponIssue;
 import com.fcfs.coupon.entity.Role;

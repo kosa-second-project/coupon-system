@@ -1,4 +1,4 @@
-package com.fcfs.coupon.dto;
+package com.fcfs.coupon.dto.user;
 
 import com.fcfs.coupon.entity.Role;
 import com.fcfs.coupon.entity.User;

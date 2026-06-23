@@ -1,6 +1,6 @@
 package com.fcfs.coupon.service;
 
-import com.fcfs.coupon.dto.UserResponse;
+import com.fcfs.coupon.dto.user.UserResponse;
 import com.fcfs.coupon.entity.Role;
 import com.fcfs.coupon.entity.User;
 import com.fcfs.coupon.repository.UserRepository;

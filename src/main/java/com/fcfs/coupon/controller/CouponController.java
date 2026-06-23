@@ -1,6 +1,7 @@
 package com.fcfs.coupon.controller;
 
-import com.fcfs.coupon.dto.*;
+import com.fcfs.coupon.dto.common.ErrorResponse;
+import com.fcfs.coupon.dto.coupon.*;
 import com.fcfs.coupon.facade.OptimisticLockCouponFacade;
 import com.fcfs.coupon.service.CouponService;
 import lombok.RequiredArgsConstructor;
