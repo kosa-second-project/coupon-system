@@ -131,17 +131,17 @@ function ConcurrencyTest() {
             marginBottom: '2rem'
           }}>
             <h4 style={{ color: '#6366f1', fontSize: '1rem', fontWeight: '700', margin: '0 0 0.8rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              ⚙️ [낙관적 락] 분석 보고: 최초 도전자 승리 & 버전 충돌 분석
+              ⚙️ [낙관적 락] 분석 보고: 최초 도전자 승리 & 자동 재시도(Facade) 연동
             </h4>
             <p style={{ margin: '0 0 0.8rem 0' }}>
-              DB 레벨에서 락을 걸지 않는 대신, 엔티티의 <strong>버전(@Version) 컬럼</strong>을 비교해 커밋 시점에 데이터 정합성을 검증합니다. 100명이 동시에 같은 버전을 조회하여 수량 수정을 시도하므로, <strong>가장 먼저 커밋에 성공한 1명만 성공</strong>하고 나머지 99명은 버전이 어긋나 <code>ObjectOptimisticLockingFailureException</code> 에러로 즉시 실패(롤백)하게 됩니다.
+              DB 레벨에서 락을 걸지 않는 대신, 엔티티의 <strong>버전(@Version) 컬럼</strong>을 비교해 커밋 시점에 데이터 정합성을 검증합니다. 동시에 100명이 수정 시도를 하면 가장 먼저 커밋한 1등만 즉시 성공하고 나머지는 <code>ObjectOptimisticLockingFailureException</code> 충돌 에러가 납니다. 하지만 <strong>현재 프로젝트는 재시도 파사드(OptimisticLockCouponFacade)를 연동하여 충돌 시 50ms 대기 후 성공할 때까지 자동 재시도</strong>하도록 구성되어 있습니다.
             </p>
             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.8rem' }}>
               <div>
-                <strong style={{ color: '#60a5fa' }}>💻 로컬 환경 (Local):</strong> DB에 물리적 잠금을 전혀 걸지 않기 때문에 대기 지연이 없으며, 매우 빠른 속도로 충돌을 판정해 대다수 요청을 신속히 실패 처리합니다.
+                <strong style={{ color: '#60a5fa' }}>💻 로컬 환경 (Local):</strong> DB 잠금이 없어 대기 지연이 없으며 매우 빠르게 충돌을 판정하지만, 재시도 횟수가 많아질 경우 백오프 대기(50ms * 시도 횟수)로 인해 최종 발급 완료 시간은 늘어날 수 있습니다.
               </div>
               <div>
-                <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 로컬과 마찬가지로 1등만 통과하고 나머지는 즉시 실패하지만, 네트워크 지연에 따라 최초 커밋 성공까지의 절대적인 시간(ms)만 다소 늘어납니다. 선착순 쿠폰처럼 고충돌 환경에서 낙관적 락을 실무적으로 사용하기 위해서는 실패한 요청들을 계속 재처리해주는 **재시도(Retry) 로직(예: Facade 구현 또는 AOP 처리)**이 필수로 구현되어야 합니다.
+                <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 버전 충돌 발생 시 백엔드의 **자동 재시도(Retry) 로직(Facade)**이 성공할 때까지 반복 시도하므로 안전하게 발급을 완수합니다. 다만 프리티어 환경에서는 반복적인 쿼리 요청으로 커넥션 풀이 고갈되거나 DB CPU 부하가 증가하여 응답 속도가 크게 지연될 수 있습니다.
               </div>
             </div>
             <div style={{ padding: '0.8rem 1rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid #6366f1', marginBottom: '0.8rem' }}>
