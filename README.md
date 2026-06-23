@@ -96,6 +96,33 @@ Spring Data JPA에서 **Auditing**은 엔티티가 데이터베이스에 저장(
 
 ---
 
+### 5. 🛠️ 아키텍처 개선 및 트러블 슈팅 (Troubleshooting & Architecture)
+
+본 프로젝트를 진행하며 직면한 현실적인 기술적 제약과 이를 극복한 아키텍처 개선 과정입니다.
+
+#### 1) MariaDB 11.x 버전 1020 락 오류 트러블 슈팅 (InnoDB Snapshot Isolation)
+* **문제 상황**: 동시성 부하 테스트 시, MariaDB 11.x 엔진 환경에서 비관적 락(`SELECT ... FOR UPDATE`) 또는 낙관적 락 충돌 시 `Record has changed since last read` (Error 1020) 또는 `Deadlock found` 오류와 함께 DB 세션 접속이 강제로 끊어지며 롤백되는 현상이 발생했습니다.
+* **원인 분석**: MariaDB 11.x 버전부터 데이터 일관성을 더욱 엄격하게 통제하기 위해 `innodb_snapshot_isolation` 변수가 기본적으로 `ON`으로 활성화되어 있습니다. 이는 트랜잭션이 시작될 때 획득한 스냅샷 정보와 변경 시점의 실제 데이터 상태가 다르면 데이터 정합성이 깨진 것으로 간주하고 DB 엔진 레벨에서 강제로 트랜잭션을 터뜨리고 연결을 단절시킵니다.
+* **해결 방법**:
+  1. **로컬 도커 환경**: `docker-compose.yml` 실행 옵션에 `--innodb-snapshot-isolation=OFF`를 직접 주입하여 해당 제약을 해제했습니다.
+  2. **배포 환경 (AWS RDS 프리티어 등)**: 클라우드 인스턴스는 파라미터 그룹 변경이 어렵거나 재부팅에 대한 제약이 있습니다. 이를 극복하고자 **JDBC 연결 URL의 `sessionVariables` 옵션**을 활용해 애플리케이션이 DB에 붙을 때 세션 단위로 임시 비활성화하도록 해결했습니다.
+     - `jdbc:mariadb://{AWS_RDS_ENDPOINT}/coupondb?sessionVariables=innodb_snapshot_isolation=OFF`
+
+#### 2) 클린 아키텍처 관점에서의 패키지 및 레이어 리팩토링
+* **문제 상황**: 
+  - 컨트롤러 계층에 영속 객체인 JPA Entity가 직접 노출되어 있었고, 이는 데이터베이스 스키마 변경이 API 스펙(JSON)을 깨뜨리는 강한 결합을 유발했습니다.
+  - 모든 컨트롤러의 API 메서드마다 중복되고 비대해진 `try-catch` 에러 처리 코드가 도배되어 비즈니스 흐름 판독이 어려웠습니다.
+* **아키텍처 개선**:
+  1. **Entity와 Controller의 완전한 격리**: 서비스 레이어가 작업 완료 후 DTO(`UserResponse`, `CouponResponse` 등)를 변환하여 반환하도록 아키텍처를 강제하고, Controller 영역에서 `import com.fcfs.coupon.entity.*`를 100% 제거했습니다. 이로써 `LazyInitializationException` 위험도 원천 차단되었습니다.
+  2. **확장성 있는 DTO 하위 패키지 구조화**: `dto` 패키지를 기능 성장에 발맞추어 하위 패키지(`dto.user`, `dto.coupon`, `dto.common`)로 도메인 분리하여 코드의 유지보수성을 극대화했습니다.
+  3. **전역 예외 처리(Global Exception Handling) 도입**: 컨트롤러 내부의 모든 `try-catch` 구문을 걷어내고 `@RestControllerAdvice` 기반의 `GlobalExceptionHandler`를 설계했습니다. 예외를 한곳에서 가로채 `ErrorResponse` 공통 스펙으로 변환함으로써 컨트롤러 코드를 단 1줄의 핵심 흐름으로 축소했습니다.
+
+#### 3) k6 부하 테스트 스크립트 구조화
+* **문제 상황**: 동시성 락 테스트와 서버 성능 스트레스 테스트 목적의 스크립트들이 섞여 있어 시나리오 실행이 난해했습니다.
+* **개선**: k6 테스트 스크립트를 동시성 제어 검증(`k6/scenarios/concurrency` - NONE, PESSIMISTIC, OPTIMISTIC)과 서비스 한계 검증(`k6/scenarios/performance` - STRESS, SOAK)으로 폴더 구조를 고도화하여 상황에 맞춘 시뮬레이션을 쉽게 수행하도록 다듬었습니다.
+
+---
+
 ## 🏃 실행 방법 (How to Run)
 
 ### 1. Backend (Spring Boot)
