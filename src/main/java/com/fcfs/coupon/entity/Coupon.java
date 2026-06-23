@@ -2,6 +2,7 @@ package com.fcfs.coupon.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fcfs.coupon.exception.CouponSoldOutException;
 
 /**
  * [Spring Boot / JPA / Domain Model]
@@ -31,6 +32,7 @@ public class Coupon extends BaseTimeEntity {
     @Column(nullable = false)
     private int remainingQuantity; // 현재 남은 쿠폰 개수 (발급 시 감소함)
 
+
     /**
      * [핵심 도메인 로직]
      * 쿠폰의 잔여 수량을 1 감소시키는 메서드입니다.
@@ -39,7 +41,7 @@ public class Coupon extends BaseTimeEntity {
      */
     public void decreaseQuantity() {
         if (this.remainingQuantity <= 0) {
-            throw new IllegalStateException("남은 쿠폰이 없습니다."); // 남은 수량이 없으면 예외를 던짐
+            throw new CouponSoldOutException(); // 남은 수량이 없으면 커스텀 예외 던짐
         }
         this.remainingQuantity--;
     }

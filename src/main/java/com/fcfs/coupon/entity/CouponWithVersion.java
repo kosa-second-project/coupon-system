@@ -2,6 +2,7 @@ package com.fcfs.coupon.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fcfs.coupon.exception.CouponSoldOutException;
 
 /**
  * [낙관적 락 전용 엔티티]
@@ -34,7 +35,7 @@ public class CouponWithVersion extends BaseTimeEntity {
 
     public void decreaseQuantity() {
         if (this.remainingQuantity <= 0) {
-            throw new IllegalStateException("남은 쿠폰이 없습니다.");
+            throw new CouponSoldOutException();
         }
         this.remainingQuantity--;
     }

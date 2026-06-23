@@ -8,27 +8,37 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * [전역 예외 처리기 - GlobalExceptionHandler]
  * - @RestControllerAdvice를 적용하여 모든 컨트롤러에서 발생하는 예외를 전역적으로 가로채어 공통된 JSON 응답으로 반환합니다.
- * - 이로써 컨트롤러 내부의 복잡하고 반복적인 try-catch 예외 처리 코드가 모두 제거됩니다.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * 비즈니스 로직 오류 (IllegalArgumentException) 처리
-     * 예: 존재하지 않는 사용자, 일치하지 않는 비밀번호 조회 등
+     * [핵심] 비즈니스 최상위 예외(BusinessException) 처리
+     * - 우리가 정의한 커스텀 예외들이 터졌을 때, 사전에 정의된 ErrorCode를 사용해 일관성 있게 포맷팅합니다.
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
+        ErrorCode errorCode = e.getErrorCode();
+        ErrorResponse response = new ErrorResponse(errorCode.getCode(), e.getMessage());
+        return ResponseEntity.status(errorCode.getStatus()).body(response);
     }
 
     /**
-     * 비즈니스 상태 오류 (IllegalStateException) 처리
-     * 예: 이미 발급받은 쿠폰, 관리자 권한 부족, 중복 가입 등
+     * 표준 IllegalArgumentException 처리
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        ErrorResponse response = new ErrorResponse(ErrorCode.INVALID_INPUT_VALUE.getCode(), e.getMessage());
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT_VALUE.getStatus()).body(response);
+    }
+
+    /**
+     * 표준 IllegalStateException 처리
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        ErrorResponse response = new ErrorResponse(ErrorCode.INVALID_INPUT_VALUE.getCode(), e.getMessage());
+        return ResponseEntity.status(ErrorCode.INVALID_INPUT_VALUE.getStatus()).body(response);
     }
 
     /**
@@ -36,8 +46,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception e) {
-        e.printStackTrace(); // 로깅을 대신해 콘솔에 출력
-        return ResponseEntity.internalServerError()
-                .body(new ErrorResponse("서버 내부 오류가 발생했습니다. 관리자에게 문의하세요."));
+        e.printStackTrace(); // 콘솔에 실제 시스템 에러 로깅
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        ErrorResponse response = new ErrorResponse(errorCode.getCode(), errorCode.getMessage());
+        return ResponseEntity.status(errorCode.getStatus()).body(response);
     }
 }

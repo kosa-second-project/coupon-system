@@ -7,6 +7,7 @@ import com.fcfs.coupon.entity.CouponIssue;
 import com.fcfs.coupon.entity.Role;
 import com.fcfs.coupon.entity.User;
 import com.fcfs.coupon.entity.CouponWithVersion;
+import com.fcfs.coupon.exception.*;
 import com.fcfs.coupon.repository.CouponIssueRepository;
 import com.fcfs.coupon.repository.CouponRepository;
 import com.fcfs.coupon.repository.CouponWithVersionRepository;
@@ -57,7 +58,7 @@ public class CouponService {
     @Transactional(readOnly = true)
     public CouponResponse getCoupon(Long couponId) {
         Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+                .orElseThrow(CouponNotFoundException::new);
         return CouponResponse.from(coupon);
     }
 
@@ -68,16 +69,16 @@ public class CouponService {
     public CouponResponse createCoupon(String name, int totalQuantity, Long adminId) {
         // 1. 요청한 사용자 정보 조회
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(UserNotFoundException::new);
 
         // 2. 관리자 권한 검증
         if (admin.getRole() != Role.ADMIN) {
-            throw new IllegalStateException("관리자 권한을 가진 사용자만 쿠폰을 생성할 수 있습니다.");
+            throw new NotAdminRoleException();
         }
 
         // 3. 중복 쿠폰명 검사
         if (couponRepository.findByName(name).isPresent()) {
-            throw new IllegalStateException("이미 존재하는 쿠폰 이름입니다.");
+            throw new DuplicateCouponNameException();
         }
 
         // 4. 쿠폰 정보 등록 및 저장
@@ -104,11 +105,11 @@ public class CouponService {
 
         // 2. 쿠폰 존재 확인 (데이터베이스에서 쿠폰 정보를 읽어옴)
         Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+                .orElseThrow(CouponNotFoundException::new);
 
         // 3. 중복 발급 여부 확인 (한 유저가 동일한 쿠폰을 이미 받았는지 검증)
         if (couponIssueRepository.existsByUserIdAndCouponId(user.getId(), coupon.getId())) {
-            throw new IllegalStateException("이미 쿠폰을 발급받았습니다.");
+            throw new AlreadyIssuedException();
         }
 
         // 4. 쿠폰 잔여 수량 감소 및 저장 (동시성 제어가 없는 순수 로직)
@@ -134,10 +135,10 @@ public class CouponService {
 
         // 비관적 락이 적용된 조회 메서드 호출
         Coupon coupon = couponRepository.findByIdWithPessimisticLock(couponId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+                .orElseThrow(CouponNotFoundException::new);
 
         if (couponIssueRepository.existsByUserIdAndCouponId(user.getId(), coupon.getId())) {
-            throw new IllegalStateException("이미 쿠폰을 발급받았습니다.");
+            throw new AlreadyIssuedException();
         }
 
         coupon.decreaseQuantity();
@@ -161,10 +162,10 @@ public class CouponService {
 
         // 낙관적 락 전용 엔티티 조회
         CouponWithVersion coupon = couponWithVersionRepository.findById(couponId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+                .orElseThrow(CouponNotFoundException::new);
 
         if (couponIssueRepository.existsByUserIdAndCouponId(user.getId(), coupon.getId())) {
-            throw new IllegalStateException("이미 쿠폰을 발급받았습니다.");
+            throw new AlreadyIssuedException();
         }
 
         coupon.decreaseQuantity();

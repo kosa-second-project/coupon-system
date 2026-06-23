@@ -3,6 +3,9 @@ package com.fcfs.coupon.service;
 import com.fcfs.coupon.dto.user.UserResponse;
 import com.fcfs.coupon.entity.Role;
 import com.fcfs.coupon.entity.User;
+import com.fcfs.coupon.exception.DuplicateUsernameException;
+import com.fcfs.coupon.exception.InvalidPasswordException;
+import com.fcfs.coupon.exception.UserNotFoundException;
 import com.fcfs.coupon.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +30,7 @@ public class UserService {
     public UserResponse signUp(String username, String password, String role) {
         // 1. 중복 사용자 검사
         if (userRepository.findByUsername(username).isPresent()) {
-            throw new IllegalStateException("이미 존재하는 사용자 이름입니다.");
+            throw new DuplicateUsernameException();
         }
 
         // 2. 권한 기본값 검증 (USER 또는 ADMIN이 아니면 기본적으로 USER로 설정)
@@ -50,11 +53,11 @@ public class UserService {
     public UserResponse login(String username, String password) {
         // 1. 사용자 존재 여부 조회
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(UserNotFoundException::new);
 
         // 2. 비밀번호 일치 확인
         if (!user.getPassword().equals(password)) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new InvalidPasswordException();
         }
 
         // 3. 로그인 성공 시 유저 정보 반환
