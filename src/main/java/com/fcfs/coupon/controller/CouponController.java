@@ -1,6 +1,5 @@
 package com.fcfs.coupon.controller;
 
-import com.fcfs.coupon.dto.common.ErrorResponse;
 import com.fcfs.coupon.dto.coupon.*;
 import com.fcfs.coupon.facade.OptimisticLockCouponFacade;
 import com.fcfs.coupon.service.CouponService;
@@ -15,6 +14,7 @@ import java.util.List;
  * 
  * - 쿠폰 관리 및 조회, 발급 요청을 처리하는 API 컨트롤러입니다.
  * - 레이어드 아키텍처 규칙을 준수하여 데이터 노출 및 의존성 격리를 위해 Entity 대신 Response DTO를 사용해 응답합니다.
+ * - 예외 처리는 GlobalExceptionHandler로 통합 분리하여 비즈니스 코드 가독성을 보장합니다.
  */
 @RestController
 @RequestMapping("/api/coupons")
@@ -40,12 +40,8 @@ public class CouponController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<CouponResponse> getCoupon(@PathVariable Long id) {
-        try {
-            CouponResponse coupon = couponService.getCoupon(id);
-            return ResponseEntity.ok(coupon);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        CouponResponse coupon = couponService.getCoupon(id);
+        return ResponseEntity.ok(coupon);
     }
 
     /**
@@ -53,17 +49,13 @@ public class CouponController {
      * POST http://localhost:8080/api/coupons
      */
     @PostMapping
-    public ResponseEntity<?> createCoupon(@RequestBody CreateCouponRequest request) {
-        try {
-            CouponResponse coupon = couponService.createCoupon(
-                    request.getName(),
-                    request.getTotalQuantity(),
-                    request.getAdminId()
-            );
-            return ResponseEntity.ok(coupon);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<CouponResponse> createCoupon(@RequestBody CreateCouponRequest request) {
+        CouponResponse coupon = couponService.createCoupon(
+                request.getName(),
+                request.getTotalQuantity(),
+                request.getAdminId()
+        );
+        return ResponseEntity.ok(coupon);
     }
 
     /**
@@ -71,13 +63,9 @@ public class CouponController {
      * POST http://localhost:8080/api/coupons/{id}/issue
      */
     @PostMapping("/{id}/issue")
-    public ResponseEntity<?> issueCoupon(@PathVariable Long id, @RequestBody IssueRequest request) {
-        try {
-            CouponIssueResponse issue = couponService.issueCoupon(request.getUsername(), id);
-            return ResponseEntity.ok(issue);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<CouponIssueResponse> issueCoupon(@PathVariable Long id, @RequestBody IssueRequest request) {
+        CouponIssueResponse issue = couponService.issueCoupon(request.getUsername(), id);
+        return ResponseEntity.ok(issue);
     }
 
     /**
@@ -85,13 +73,9 @@ public class CouponController {
      * POST http://localhost:8080/api/coupons/{id}/issue/pessimistic
      */
     @PostMapping("/{id}/issue/pessimistic")
-    public ResponseEntity<?> issueCouponWithPessimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
-        try {
-            CouponIssueResponse issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
-            return ResponseEntity.ok(issue);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<CouponIssueResponse> issueCouponWithPessimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
+        CouponIssueResponse issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
+        return ResponseEntity.ok(issue);
     }
 
     /**
@@ -99,16 +83,9 @@ public class CouponController {
      * POST http://localhost:8080/api/coupons/{id}/issue/optimistic
      */
     @PostMapping("/{id}/issue/optimistic")
-    public ResponseEntity<?> issueCouponWithOptimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
-        try {
-            CouponIssueResponse issue = optimisticLockCouponFacade.issueCoupon(request.getUsername(), id);
-            return ResponseEntity.ok(issue);
-        } catch (IllegalStateException | IllegalArgumentException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<CouponIssueResponse> issueCouponWithOptimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) throws InterruptedException {
+        CouponIssueResponse issue = optimisticLockCouponFacade.issueCoupon(request.getUsername(), id);
+        return ResponseEntity.ok(issue);
     }
 
     /**
@@ -117,13 +94,8 @@ public class CouponController {
      */
     @PostMapping("/{id}/reset")
     public ResponseEntity<?> resetTestData(@PathVariable Long id) {
-        try {
-            couponService.resetTestData(id);
-            return ResponseEntity.ok().body(java.util.Map.of("message", "테스트 데이터 초기화 완료"));
-        } catch (Exception e) {
-            e.printStackTrace(); // 콘솔에 상세 에러 출력
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+        couponService.resetTestData(id);
+        return ResponseEntity.ok().body(java.util.Map.of("message", "테스트 데이터 초기화 완료"));
     }
 }
 
