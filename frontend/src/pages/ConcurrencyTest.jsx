@@ -64,13 +64,17 @@ function ConcurrencyTest() {
             <p style={{ margin: '0 0 0.8rem 0' }}>
               락 제어가 없기 때문에 여러 트랜잭션이 <strong>동시에 같은 수량 값을 조회한 뒤, 각자 1개씩 차감한 값으로 계속 덮어씌우는 '갱신 손실(Lost Update)'</strong>이 발생합니다. 그 결과 발급 건수는 수십 개가 쌓였는데 남은 수량은 1~2개밖에 줄어들지 않는 정합성 붕괴 상태가 됩니다.
             </p>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.8rem' }}>
               <div>
                 <strong style={{ color: '#60a5fa' }}>💻 로컬 환경 (Local):</strong> 네트워크 지연(Latency)이 거의 없고 PC 성능이 뛰어나기 때문에, DB의 암묵적인 로우 락(Row Lock) 대기 시간이 매우 짧습니다. 따라서 타임아웃 제한 시간을 넘기지 않아 <strong>실패율 0%(모두 성공)</strong>가 나오지만, 실제 데이터는 엄청난 초과 발급이 발생한 상태가 됩니다.
               </div>
               <div>
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> AWS 서버 간의 네트워크 레이턴시가 발생하고 RDS의 하드웨어 스펙이 낮기 때문에, 동일한 데이터를 수정하기 위한 로우 락 대기 줄이 길게 늘어집니다. 결국 대기 시간이 한계치를 초과하여 <strong>DB의 락 타임아웃(Lock wait timeout)</strong> 또는 <strong>커넥션 풀 고갈(HikariCP Connection Timeout)</strong>로 인해 <strong>실패(빨간색) 요청이 대거 발생</strong>하게 됩니다.
               </div>
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
+              <strong style={{ color: '#fca5a5' }}>💡 쉽게 이해하는 비유 (칠판 숫자 낙서)</strong><br />
+              두 명의 학생이 칠판에 적힌 숫자 '100'을 보고 동시에 '1을 빼는 낙서'를 하러 달려갑니다. 둘 다 머릿속으로 '100 - 1 = 99'를 계산한 상태로 칠판에 적기 때문에, 두 명이 낙서를 끝냈음에도 칠판에는 '98'이 아닌 '99'가 남게 되는 현상과 같습니다. (1명의 작업이 공중으로 날아감)
             </div>
           </div>
         );
@@ -92,13 +96,17 @@ function ConcurrencyTest() {
             <p style={{ margin: '0 0 0.8rem 0' }}>
               데이터를 조회할 때부터 <code>SELECT ... FOR UPDATE</code>를 실행해 물리적인 데이터 행에 잠금을 걸어버립니다. 먼저 도달한 트랜잭션이 끝나기 전까지 다른 트랜잭션들은 차례대로 대기(줄 세우기)하므로, <strong>성공한 사람 수와 감소한 수량이 단 1개의 오차도 없이 일치</strong>하게 됩니다.
             </p>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.8rem' }}>
               <div>
                 <strong style={{ color: '#60a5fa' }}>💻 로컬 환경 (Local):</strong> 순차 대기 속도가 타임아웃 기준(30~50초)을 넘지 않으므로, 남은 수량 한도까지 정상적으로 발급에 성공하고 수량이 소진된 이후의 요청은 비즈니스 예외(수량 부족)로 깔끔하게 처리됩니다.
               </div>
               <div>
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 트랜잭션 시간이 길어져 대기 큐의 꼬리가 길어집니다. 이로 인해 뒤쪽에 서 있는 요청들은 대기 한계 시간을 초과하여 <strong>비즈니스 로직(수량 부족)이 실행되기도 전에 타임아웃 에러로 강제 실패</strong>하게 됩니다. 대규모 트래픽 환경에서 비관적 락을 원활하게 쓰려면 커넥션 풀 튜닝과 고성능 DB 스케일업이 수반되어야 함을 배울 수 있습니다.
               </div>
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
+              <strong style={{ color: '#a7f3d0' }}>💡 쉽게 이해하는 비유 (1인용 화장실)</strong><br />
+              누군가 들어가서 안에서 문을 잠그고 사용하는 1인용 화장실과 같습니다. 뒤에 온 사람들은 화장실 문이 열릴 때까지 무조건 밖에서 줄을 서야 하며, 대기 줄이 너무 길어지고 대기 제한 시간이 지나면 기다리던 사람이 포기하고 그냥 돌아가게(타임아웃 실패) 됩니다.
             </div>
           </div>
         );
@@ -120,13 +128,17 @@ function ConcurrencyTest() {
             <p style={{ margin: '0 0 0.8rem 0' }}>
               DB 레벨에서 락을 걸지 않는 대신, 엔티티의 <strong>버전(@Version) 컬럼</strong>을 비교해 커밋 시점에 데이터 정합성을 검증합니다. 100명이 동시에 같은 버전을 조회하여 수량 수정을 시도하므로, <strong>가장 먼저 커밋에 성공한 1명만 성공</strong>하고 나머지 99명은 버전이 어긋나 <code>ObjectOptimisticLockingFailureException</code> 에러로 즉시 실패(롤백)하게 됩니다.
             </p>
-            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.8rem' }}>
               <div>
                 <strong style={{ color: '#60a5fa' }}>💻 로컬 환경 (Local):</strong> DB에 물리적 잠금을 전혀 걸지 않기 때문에 대기 지연이 없으며, 매우 빠른 속도로 충돌을 판정해 대다수 요청을 신속히 실패 처리합니다.
               </div>
               <div>
                 <strong style={{ color: '#f87171' }}>☁️ 배포 환경 (AWS EC2 + RDS 프리티어):</strong> 로컬과 마찬가지로 1등만 통과하고 나머지는 즉시 실패하지만, 네트워크 지연에 따라 최초 커밋 성공까지의 절대적인 시간(ms)만 다소 늘어납니다. 선착순 쿠폰처럼 고충돌 환경에서 낙관적 락을 실무적으로 사용하기 위해서는 실패한 요청들을 계속 재처리해주는 **재시도(Retry) 로직(예: Facade 구현 또는 AOP 처리)**이 필수로 구현되어야 합니다.
               </div>
+            </div>
+            <div style={{ padding: '0.8rem 1rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', borderLeft: '4px solid #6366f1' }}>
+              <strong style={{ color: '#c7d2fe' }}>💡 쉽게 이해하는 비유 (위키백과 문서 동시 편집)</strong><br />
+              100명의 사람이 동시에 위키백과의 동일한 문서를 열어서 수정하기 시작합니다. 가장 먼저 편집을 마치고 '저장' 버튼을 누른 1등만 실제 문서에 반영(버전 상승)되고, 2등부터 100등까지의 사람들은 저장 시점에 "이미 수정된 문서입니다"라며 저장을 거부당해(롤백) 작업이 취소되는 것과 같습니다.
             </div>
           </div>
         );
