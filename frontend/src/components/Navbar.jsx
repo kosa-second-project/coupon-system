@@ -1,19 +1,23 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useUserStore } from '../store/useUserStore';
 
 /**
  * [React Component - Navbar]
  * 
  * - 화면 상단에 고정되어 있는 네비게이션 헤더입니다.
  * - 로그인 정보(사용자 이름, 권한)를 보여주고 로그아웃 기능을 제공합니다.
- * - 로그인한 사용자의 권한(ADMIN / USER)에 따라 관리자 페이지 또는 쿠폰 목록 페이지로 이동할 수 있는 탭을 노출합니다.
+ * - [Zustand 적용]: props 대신 useUserStore에서 user 상태와 logout 함수를 가져옵니다.
  */
-function Navbar({ user, onLogout }) {
+function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const user = useUserStore((state) => state.user);
+  const logout = useUserStore((state) => state.logout);
+
   const handleLogoutClick = () => {
-    onLogout();
+    logout();
     navigate('/login');
   };
 
@@ -70,6 +74,15 @@ function Navbar({ user, onLogout }) {
             >
               <i className="bi bi-ticket-detailed" style={{ fontSize: '1.05rem' }}></i>
               쿠폰 발급
+            </span>
+
+            {/* 동시성 테스트 탭 */}
+            <span 
+              onClick={() => navigate('/concurrency')} 
+              className={`nav-link ${location.pathname === '/concurrency' ? 'active' : ''}`}
+            >
+              <i className="bi bi-cpu" style={{ fontSize: '1.05rem' }}></i>
+              동시성 테스트
             </span>
 
             {/* 관리자(ADMIN) 권한 소유 유저에게만 '쿠폰 관리자' 메뉴 노출 */}

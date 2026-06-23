@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useUserStore } from '../store/useUserStore';
 
 /**
  * [React Page - CouponList]
@@ -7,7 +8,8 @@ import axios from 'axios';
  * - 사용자가 발급 가능한 모든 쿠폰의 리스트를 실시간으로 확인하고 신청할 수 있는 화면입니다.
  * - 3초 주기 폴링(Polling)을 수행하여 여러 사람이 발급 시 변경되는 잔여 수량을 실시간 갱신합니다.
  */
-function CouponList({ user }) {
+function CouponList() {
+  const user = useUserStore((state) => state.user);
   const [coupons, setCoupons] = useState([]);
   const [loadingMap, setLoadingMap] = useState({}); 
   const [fetching, setFetching] = useState(true);
