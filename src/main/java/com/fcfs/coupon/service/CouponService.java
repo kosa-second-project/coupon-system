@@ -1,5 +1,7 @@
 package com.fcfs.coupon.service;
 
+import com.fcfs.coupon.dto.CouponIssueResponse;
+import com.fcfs.coupon.dto.CouponResponse;
 import com.fcfs.coupon.entity.Coupon;
 import com.fcfs.coupon.entity.CouponIssue;
 import com.fcfs.coupon.entity.Role;
@@ -43,24 +45,27 @@ public class CouponService {
      * 전체 쿠폰 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<Coupon> getAllCoupons() {
-        return couponRepository.findAll();
+    public List<CouponResponse> getAllCoupons() {
+        return couponRepository.findAll().stream()
+                .map(CouponResponse::from)
+                .toList();
     }
 
     /**
      * 쿠폰 단건 조회
      */
     @Transactional(readOnly = true)
-    public Coupon getCoupon(Long couponId) {
-        return couponRepository.findById(couponId)
+    public CouponResponse getCoupon(Long couponId) {
+        Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 쿠폰입니다."));
+        return CouponResponse.from(coupon);
     }
 
     /**
      * [관리자 전용] 쿠폰 생성 비즈니스 로직
      */
     @Transactional
-    public Coupon createCoupon(String name, int totalQuantity, Long adminId) {
+    public CouponResponse createCoupon(String name, int totalQuantity, Long adminId) {
         // 1. 요청한 사용자 정보 조회
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -82,7 +87,7 @@ public class CouponService {
                 .remainingQuantity(totalQuantity)
                 .build();
 
-        return couponRepository.save(coupon);
+        return CouponResponse.from(couponRepository.save(coupon));
     }
 
     /**
@@ -93,7 +98,7 @@ public class CouponService {
      *   - 이미 존재해야 하는 유저를 조회한 뒤, 없을 경우 예외를 던집니다.
      */
     @Transactional
-    public CouponIssue issueCoupon(String username, Long couponId) {
+    public CouponIssueResponse issueCoupon(String username, Long couponId) {
         // 1. 유저 조회 (없으면 예외 발생. 단, 테스트용 가상유저(test_user_)인 경우 임시 자동 생성)
         User user = getOrCreateUserForTest(username);
 
@@ -116,7 +121,7 @@ public class CouponService {
                 .couponId(coupon.getId())
                 .build();
 
-        return couponIssueRepository.save(couponIssue);
+        return CouponIssueResponse.from(couponIssueRepository.save(couponIssue));
     }
 
     /**
@@ -124,7 +129,7 @@ public class CouponService {
      * - select ... for update 쿼리를 날려서 해당 로우에 쓰기 락을 걸고 수량을 감소시킵니다.
      */
     @Transactional
-    public CouponIssue issueCouponWithPessimisticLock(String username, Long couponId) {
+    public CouponIssueResponse issueCouponWithPessimisticLock(String username, Long couponId) {
         User user = getOrCreateUserForTest(username);
 
         // 비관적 락이 적용된 조회 메서드 호출
@@ -143,7 +148,7 @@ public class CouponService {
                 .couponId(coupon.getId())
                 .build();
 
-        return couponIssueRepository.save(couponIssue);
+        return CouponIssueResponse.from(couponIssueRepository.save(couponIssue));
     }
 
     /**
@@ -151,7 +156,7 @@ public class CouponService {
      * - 엔티티의 @Version 필드를 통해 JPA가 트랜잭션 종료 시점에 버전 일치 여부를 검증합니다.
      */
     @Transactional
-    public CouponIssue issueCouponWithOptimisticLock(String username, Long couponId) {
+    public CouponIssueResponse issueCouponWithOptimisticLock(String username, Long couponId) {
         User user = getOrCreateUserForTest(username);
 
         // 낙관적 락 전용 엔티티 조회
@@ -170,7 +175,7 @@ public class CouponService {
                 .couponId(coupon.getId())
                 .build();
 
-        return couponIssueRepository.save(couponIssue);
+        return CouponIssueResponse.from(couponIssueRepository.save(couponIssue));
     }
 
     /**

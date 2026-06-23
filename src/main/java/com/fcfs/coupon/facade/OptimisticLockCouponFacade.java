@@ -1,5 +1,6 @@
 package com.fcfs.coupon.facade;
 
+import com.fcfs.coupon.dto.CouponIssueResponse;
 import com.fcfs.coupon.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -21,11 +22,10 @@ public class OptimisticLockCouponFacade {
     // 재시도 횟수 측정을 위한 정적 카운터
     public static final AtomicLong retryCount = new AtomicLong(0);
 
-    public void issueCoupon(String username, Long couponId) throws InterruptedException {
+    public CouponIssueResponse issueCoupon(String username, Long couponId) throws InterruptedException {
         while (true) {
             try {
-                couponService.issueCouponWithOptimisticLock(username, couponId);
-                break; // 성공 시 루프 탈출
+                return couponService.issueCouponWithOptimisticLock(username, couponId);
             } catch (ObjectOptimisticLockingFailureException e) {
                 retryCount.incrementAndGet(); // 재시도 카운트 증가
                 // 낙관적 락 버전 충돌 발생 시 50ms 대기 후 재시도

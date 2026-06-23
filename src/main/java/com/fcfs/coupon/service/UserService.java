@@ -1,5 +1,6 @@
 package com.fcfs.coupon.service;
 
+import com.fcfs.coupon.dto.UserResponse;
 import com.fcfs.coupon.entity.Role;
 import com.fcfs.coupon.entity.User;
 import com.fcfs.coupon.repository.UserRepository;
@@ -23,7 +24,7 @@ public class UserService {
      * 회원 가입 비즈니스 로직
      */
     @Transactional
-    public User signUp(String username, String password, String role) {
+    public UserResponse signUp(String username, String password, String role) {
         // 1. 중복 사용자 검사
         if (userRepository.findByUsername(username).isPresent()) {
             throw new IllegalStateException("이미 존재하는 사용자 이름입니다.");
@@ -39,14 +40,14 @@ public class UserService {
                 .role(userRole)
                 .build();
 
-        return userRepository.save(user);
+        return UserResponse.from(userRepository.save(user));
     }
 
     /**
      * 로그인 비즈니스 로직
      */
     @Transactional(readOnly = true)
-    public User login(String username, String password) {
+    public UserResponse login(String username, String password) {
         // 1. 사용자 존재 여부 조회
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -57,6 +58,6 @@ public class UserService {
         }
 
         // 3. 로그인 성공 시 유저 정보 반환
-        return user;
+        return UserResponse.from(user);
     }
 }

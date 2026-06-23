@@ -1,9 +1,8 @@
 package com.fcfs.coupon.controller;
 
-import com.fcfs.coupon.entity.Coupon;
-import com.fcfs.coupon.entity.CouponIssue;
+import com.fcfs.coupon.dto.*;
+import com.fcfs.coupon.facade.OptimisticLockCouponFacade;
 import com.fcfs.coupon.service.CouponService;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +13,7 @@ import java.util.List;
  * [Spring Boot / Web (REST API) / Controller]
  * 
  * - 쿠폰 관리 및 조회, 발급 요청을 처리하는 API 컨트롤러입니다.
+ * - 레이어드 아키텍처 규칙을 준수하여 데이터 노출 및 의존성 격리를 위해 Entity 대신 Response DTO를 사용해 응답합니다.
  */
 @RestController
 @RequestMapping("/api/coupons")
@@ -21,14 +21,16 @@ import java.util.List;
 public class CouponController {
 
     private final CouponService couponService;
+    private final OptimisticLockCouponFacade optimisticLockCouponFacade;
 
     /**
      * 전체 쿠폰 목록 조회
      * GET http://localhost:8080/api/coupons
      */
     @GetMapping
-    public ResponseEntity<List<Coupon>> getAllCoupons() {
-        return ResponseEntity.ok(couponService.getAllCoupons());
+    public ResponseEntity<List<CouponResponse>> getAllCoupons() {
+        List<CouponResponse> coupons = couponService.getAllCoupons();
+        return ResponseEntity.ok(coupons);
     }
 
     /**
@@ -36,9 +38,10 @@ public class CouponController {
      * GET http://localhost:8080/api/coupons/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Coupon> getCoupon(@PathVariable Long id) {
+    public ResponseEntity<CouponResponse> getCoupon(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(couponService.getCoupon(id));
+            CouponResponse coupon = couponService.getCoupon(id);
+            return ResponseEntity.ok(coupon);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -51,7 +54,7 @@ public class CouponController {
     @PostMapping
     public ResponseEntity<?> createCoupon(@RequestBody CreateCouponRequest request) {
         try {
-            Coupon coupon = couponService.createCoupon(
+            CouponResponse coupon = couponService.createCoupon(
                     request.getName(),
                     request.getTotalQuantity(),
                     request.getAdminId()
@@ -69,7 +72,7 @@ public class CouponController {
     @PostMapping("/{id}/issue")
     public ResponseEntity<?> issueCoupon(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
-            CouponIssue issue = couponService.issueCoupon(request.getUsername(), id);
+            CouponIssueResponse issue = couponService.issueCoupon(request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
@@ -83,7 +86,7 @@ public class CouponController {
     @PostMapping("/{id}/issue/pessimistic")
     public ResponseEntity<?> issueCouponWithPessimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
-            CouponIssue issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
+            CouponIssueResponse issue = couponService.issueCouponWithPessimisticLock(request.getUsername(), id);
             return ResponseEntity.ok(issue);
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
@@ -97,9 +100,12 @@ public class CouponController {
     @PostMapping("/{id}/issue/optimistic")
     public ResponseEntity<?> issueCouponWithOptimisticLock(@PathVariable Long id, @RequestBody IssueRequest request) {
         try {
-            CouponIssue issue = couponService.issueCouponWithOptimisticLock(request.getUsername(), id);
+            CouponIssueResponse issue = optimisticLockCouponFacade.issueCoupon(request.getUsername(), id);
             return ResponseEntity.ok(issue);
-        } catch (IllegalStateException | IllegalArgumentException e) {
+        } catch (IllegalStateException | IllegalArgumentException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
@@ -117,25 +123,6 @@ public class CouponController {
             e.printStackTrace(); // 콘솔에 상세 에러 출력
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
-    }
-
-    // DTO 정의
-    @Data
-    public static class CreateCouponRequest {
-        private String name;
-        private int totalQuantity;
-        private Long adminId;
-    }
-
-    @Data
-    public static class IssueRequest {
-        private String username;
-    }
-
-    @Data
-    @RequiredArgsConstructor
-    public static class ErrorResponse {
-        private final String message;
     }
 }
 
