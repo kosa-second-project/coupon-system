@@ -35,5 +35,14 @@ public interface CouponIssueRepository extends JpaRepository<CouponIssue, Long> 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from CouponIssue ci where ci.userId in :userIds")
     void deleteByUserIdIn(@Param("userIds") List<Long> userIds);
+
+    // 특정 가상 사용자 목록(userIds) 중 특정 쿠폰 ID(couponId)의 발급 이력만 벌크 삭제
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from CouponIssue ci where ci.userId in :userIds and ci.couponId = :couponId")
+    void deleteByUserIdInAndCouponId(@Param("userIds") List<Long> userIds, @Param("couponId") Long couponId);
+
+    // 가상 사용자 목록 중 여전히 발급 이력이 하나라도 남아있는 유저 ID 목록 조회
+    @Query("select distinct ci.userId from CouponIssue ci where ci.userId in :userIds")
+    List<Long> findReferencedUserIdsIn(@Param("userIds") List<Long> userIds);
 }
 

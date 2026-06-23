@@ -207,16 +207,24 @@ public class CouponService {
         List<User> testUsers = userRepository.findByUsernameStartingWith("test_user_");
         if (!testUsers.isEmpty()) {
             List<Long> userIds = testUsers.stream().map(User::getId).toList();
-            List<String> usernames = testUsers.stream().map(User::getUsername).toList();
 
-            // 2. 가상 사용자의 발급 이력 삭제 (벌크 쿼리)
-            couponIssueRepository.deleteByUserIdIn(userIds);
+            // 2. 가상 사용자의 '해당 쿠폰' 발급 이력만 정밀 타격하여 삭제 (다른 쿠폰 데이터 보존)
+            couponIssueRepository.deleteByUserIdInAndCouponId(userIds, couponId);
 
-            // 3. 가상 사용자 삭제 (벌크 쿼리)
-            userRepository.deleteByUsernameIn(usernames);
+            // 3. 발급 이력이 지워진 후에도, 여전히 다른 쿠폰의 발급 이력(참조)이 남아있는 유저 ID 조회
+            List<Long> referencedUserIds = couponIssueRepository.findReferencedUserIdsIn(userIds);
+
+            // 4. 어떤 쿠폰의 발급 이력도 남지 않은 유저 ID만 선별하여 일괄 삭제 (메모리 누수 및 DB 비대화 방지)
+            List<Long> userIdsToDelete = userIds.stream()
+                    .filter(id -> !referencedUserIds.contains(id))
+                    .toList();
+
+            if (!userIdsToDelete.isEmpty()) {
+                userRepository.deleteByIdIn(userIdsToDelete);
+            }
         }
 
-        // 4. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
+        // 5. 쿠폰 잔여 수량 및 버전(낙관적 락) 원상 복구 (네이티브 벌크 쿼리로 안전하게 리셋)
         couponRepository.resetCouponQuantity(couponId);
     }
 }

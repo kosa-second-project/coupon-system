@@ -26,5 +26,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from User u where u.username in :usernames")
     void deleteByUsernameIn(@Param("usernames") List<String> usernames);
+
+    // 가상 사용자 ID 목록을 한 번에 벌크 삭제하는 메서드
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from User u where u.id in :userIds")
+    void deleteByIdIn(@Param("userIds") List<Long> userIds);
 }
 
