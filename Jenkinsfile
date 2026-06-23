@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+
     environment {
         // Docker Hub 정보 설정
         DOCKER_HUB_USER  = 'youngmankim' // 본인 Docker Hub ID로 변경 완료
